@@ -182,7 +182,7 @@
         }
         function updateCurrentPlayer() {
           if (el.currentPlayer) el.currentPlayer.textContent = started ? `現在: ${players[turn]}` : '';
-          if (el.turnInfo) el.turnInfo.textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
+          if (el.turnInfo) el.turnInfo.textContent = started ? `ターン: ${players[1-turn]}` : '名前を入力して「開始」';
           const hint = document.getElementById('nextHint');
           if (hint) hint.textContent = started ? `次は ${players[turn]} の番です。「真実」か「挑戦」を選んでください` : '';
         }
