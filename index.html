@@ -36,6 +36,7 @@
       #prompt { font-size: clamp(20px, 4.8vw, 28px); line-height: 1.5; }
 
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .hint { font-size: 14px; color: var(--muted); margin-top: 4px; }
       button { -webkit-tap-highlight-color: transparent; appearance: none; border: none; cursor: pointer;
         background: var(--accent); color: white; font-weight: 700; padding: 16px; border-radius: 14px; font-size: 16px; box-shadow: 0 8px 20px rgba(59,130,246,0.32);
         transition: transform .05s ease, filter .2s ease; }
@@ -81,6 +82,7 @@
             <span class="turn" id="currentPlayer"></span>
           </div>
           <div id="prompt">プレイヤーが「真実」か「挑戦」を選んでください</div>
+          <div id="nextHint" class="hint"></div>
           <div class="actions">
             <button id="btnTruth" class="truthBtn" aria-label="真実を引く">真実をひく</button>
             <button id="btnDare" class="dareBtn" aria-label="挑戦を引く">挑戦をひく</button>
@@ -106,24 +108,23 @@
       window.addEventListener('DOMContentLoaded', () => {
         // ---- デッキ ----
         const TRUTHS = [
-          "今週いちばん焦った出来事は？",
-          "最近の小さな罪悪感は？",
-          "子どもの頃に本気で信じていた勘違いは？",
-          "グループの誰にも言ってない癖は？",
-          "直したいけど直らない生活習慣は？",
-          "今のスマホのホーム画面で一番使うアプリは？",
-          "ここ1年でいちばん高い買い物は？",
-          "今日の気分を一言で表すなら？"
+          "恋人に隠していることは？",
+          "浮気をしたことはある？",
+          "相手の外見で一番魅力的だと思う部分は？",
+          "最後に泣いたのはいつ？",
+          "あなたの一番の宝物は？",
+          "体の部位で一番のコンプレックスは？",
+          "相手と二人で旅行に行くなら、どんなシチュエーションを期待する？",
+          "誕生日にしたいことは？"
         ];
         const DARES = [
-          "10秒間、即興ラジオDJになりきる",
-          "右隣の人の良いところを3つ連続で言う",
-          "スマホのタイマーを5秒にしてアラーム鳴るまでポーズ",
-          "その場で撮った自撮りを全員に見せる",
-          "好きな食べ物を食レポ風に30秒語る",
-          "利き手じゃない手で自分の名前を書く",
-          "目をつぶって10秒で円を描く。全員で採点",
-          "次の1ターン、語尾に『にゃ』を付ける"
+          "次の自分の順番まで相手の手を握る",
+          "相手の耳元で秘密をささやく",
+          "相手の手の甲に指でハートを描く",
+          "5分間敬語禁止（相手の名前を呼び捨てにする）",
+          "30秒間くすぐられる",
+          "相手の指示に従ってお酒を飲む",
+          "5秒間キス顔をする"
         ];
 
         // ---- 永続化 ----
@@ -182,6 +183,8 @@
         function updateCurrentPlayer() {
           if (el.currentPlayer) el.currentPlayer.textContent = started ? `現在: ${players[turn]}` : '';
           if (el.turnInfo) el.turnInfo.textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
+          const hint = document.getElementById('nextHint');
+          if (hint) hint.textContent = started ? `次は ${players[turn]} の番です。「真実」か「挑戦」を選んでください` : '';
         }
         function render(card) {
           if (!el.typeChip || !el.prompt) return;
@@ -218,8 +221,9 @@
           if (!card) { flashPrompt(type==='truth'?'真実が尽きました':'挑戦が尽きました'); return; }
           history.unshift({ player: players[turn], type: card.type, text: card.text });
           if (navigator.vibrate) navigator.vibrate(8);
-          render(card);
+          // 先に手番を交代してから表示を更新 → 次のプレイヤーに促す文言が正しくなる
           turn = 1 - turn;
+          render(card);
           persist();
         }
         function skip() { if (!started) return; if (navigator.vibrate) navigator.vibrate([2,30,2]); turn = 1 - turn; render(null); persist(); }
