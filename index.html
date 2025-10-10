@@ -102,172 +102,163 @@
     </main>
 
     <script>
-      // ---- デッキ ----
-      const TRUTHS = [
-        "今週いちばん焦った出来事は？",
-        "最近の小さな罪悪感は？",
-        "子どもの頃に本気で信じていた勘違いは？",
-        "グループの誰にも言ってない癖は？",
-        "直したいけど直らない生活習慣は？",
-        "今のスマホのホーム画面で一番使うアプリは？",
-        "ここ1年でいちばん高い買い物は？",
-        "今日の気分を一言で表すなら？"
-      ];
-      const DARES = [
-        "10秒間、即興ラジオDJになりきる",
-        "右隣の人の良いところを3つ連続で言う",
-        "スマホのタイマーを5秒にしてアラーム鳴るまでポーズ",
-        "その場で撮った自撮りを全員に見せる",
-        "好きな食べ物を食レポ風に30秒語る",
-        "利き手じゃない手で自分の名前を書く",
-        "目をつぶって10秒で円を描く。全員で採点",
-        "次の1ターン、語尾に『にゃ』を付ける"
-      ];
+      // DOMContentLoaded 後に初期化して、要素未取得による不具合を防ぐ
+      window.addEventListener('DOMContentLoaded', () => {
+        // ---- デッキ ----
+        const TRUTHS = [
+          "今週いちばん焦った出来事は？",
+          "最近の小さな罪悪感は？",
+          "子どもの頃に本気で信じていた勘違いは？",
+          "グループの誰にも言ってない癖は？",
+          "直したいけど直らない生活習慣は？",
+          "今のスマホのホーム画面で一番使うアプリは？",
+          "ここ1年でいちばん高い買い物は？",
+          "今日の気分を一言で表すなら？"
+        ];
+        const DARES = [
+          "10秒間、即興ラジオDJになりきる",
+          "右隣の人の良いところを3つ連続で言う",
+          "スマホのタイマーを5秒にしてアラーム鳴るまでポーズ",
+          "その場で撮った自撮りを全員に見せる",
+          "好きな食べ物を食レポ風に30秒語る",
+          "利き手じゃない手で自分の名前を書く",
+          "目をつぶって10秒で円を描く。全員で採点",
+          "次の1ターン、語尾に『にゃ』を付ける"
+        ];
 
-      // ---- 永続化 ----
-      const KEY = "tod_state_v2"; // v2: 2人対戦対応
-      function saveState(state) {
-        try { localStorage.setItem(KEY, JSON.stringify(state));
-          document.getElementById('saveStateInfo').textContent = "保存中";
-          setTimeout(()=>document.getElementById('saveStateInfo').textContent = "", 600);
-        } catch (_) {}
-      }
-      function loadState() {
-        try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
-      }
-
-      // ---- 状態 ----
-      let deck = [];
-      let history = []; // {player, type, text}
-      let players = ["プレイヤー1", "プレイヤー2"];
-      let turn = 0; // 0 or 1
-      let started = false;
-
-      function makeDeck() {
-        const truths = TRUTHS.map(t => ({ type: 'truth', text: t }));
-        const dares = DARES.map(t => ({ type: 'dare', text: t }));
-        return [...truths, ...dares];
-      }
-      function shuffle(array) { for (let i=array.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]];} return array; }
-
-      function counts() {
-        const leftAll = deck.length;
-        const leftTruth = deck.filter(c=>c.type==='truth').length;
-        const leftDare = deck.filter(c=>c.type==='dare').length;
-        return { leftAll, leftTruth, leftDare };
-      }
-
-      function updateCounts() {
-        const { leftAll, leftTruth, leftDare } = counts();
-        document.getElementById('counts').textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
-      }
-
-      function updateCurrentPlayer() {
-        const cp = document.getElementById('currentPlayer');
-        cp.textContent = started ? `現在: ${players[turn]}` : '';
-        const info = document.getElementById('turnInfo');
-        if (info) info.textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
-      }
-
-      function render(card) {
-        const chip = document.getElementById('typeChip');
-        const prompt = document.getElementById('prompt');
-        if (!card) { chip.className='chip'; chip.textContent='カード未選択'; prompt.textContent='プレイヤーが「真実」か「挑戦」を選んでください'; }
-        else { chip.className = 'chip ' + (card.type==='truth'?'truth':'dare'); chip.textContent = card.type==='truth'?'真実':'挑戦'; prompt.textContent = card.text; }
-        const list = document.getElementById('history');
-        list.innerHTML = history.map(item => `
-          <div class="history-item">
-            <span class="dot ${item.type}"></span>
-            <span>${item.player}</span>
-            <span>${item.text}</span>
-          </div>`).join('');
-        updateCounts();
-        updateCurrentPlayer();
-      }
-
-      function takeRandom(type) {
-        const pool = deck.filter(c=>c.type===type);
-        if (pool.length===0) return null;
-        const idx = Math.floor(Math.random()*pool.length);
-        const card = pool[idx];
-        const realIndex = deck.indexOf(card);
-        if (realIndex>=0) deck.splice(realIndex,1);
-        return card;
-      }
-
-      function drawBy(type) {
-        if (!started) return;
-        const card = takeRandom(type);
-        if (!card) { flashPrompt(type==='truth'?'真実が尽きました':'挑戦が尽きました'); return; }
-        const entry = { player: players[turn], type: card.type, text: card.text };
-        history.unshift(entry);
-        if (navigator.vibrate) navigator.vibrate(8);
-        render(card);
-        // 次のプレイヤーへ
-        turn = 1 - turn;
-        persist();
-      }
-
-      function skip() {
-        if (!started) return;
-        if (navigator.vibrate) navigator.vibrate([2,30,2]);
-        turn = 1 - turn; // スキップは手番をパス
-        render(null);
-        persist();
-      }
-
-      function reset(keepPlayers=true) {
-        deck = shuffle(makeDeck());
-        history = [];
-        if (!keepPlayers) {
-          players=["プレイヤー1","プレイヤー2"]; turn=0; started=false;
-          document.getElementById('setup').style.display='grid';
-          document.getElementById('game').style.display='none';
+        // ---- 永続化 ----
+        const KEY = "tod_state_v3"; // v3: DOMContentLoaded対応
+        function saveState(state) {
+          try { localStorage.setItem(KEY, JSON.stringify(state));
+            const info = document.getElementById('saveStateInfo');
+            if (info){ info.textContent = "保存中"; setTimeout(()=> info.textContent = "", 600); }
+          } catch (_) {}
         }
-        render(null);
-        persist();
-      }
-        render(null);
-        persist();
-      }
+        function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } }
 
-      function flashPrompt(msg) {
-        const el = document.getElementById('prompt');
-        const old = el.textContent; el.textContent = msg; setTimeout(()=> el.textContent = old, 1200);
-      }
+        // ---- 状態 ----
+        let deck = [];
+        let history = []; // {player, type, text}
+        let players = ["プレイヤー1", "プレイヤー2"];
+        let turn = 0; // 0 or 1
+        let started = false;
 
-      function persist() { saveState({ deck, history, players, turn, started }); }
-      function restore() {
-        const saved = loadState();
-        if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
-          ({ deck, history, players, turn, started } = Object.assign({ players, turn, started:false }, saved));
-        } else {
-          deck = shuffle(makeDeck());
-          started = false;
+        // ---- 要素 ----
+        const el = {
+          setup: document.getElementById('setup'),
+          game: document.getElementById('game'),
+          counts: document.getElementById('counts'),
+          typeChip: document.getElementById('typeChip'),
+          prompt: document.getElementById('prompt'),
+          history: document.getElementById('history'),
+          currentPlayer: document.getElementById('currentPlayer'),
+          p1: document.getElementById('p1'),
+          p2: document.getElementById('p2'),
+          btnStart: document.getElementById('btnStart'),
+          btnTruth: document.getElementById('btnTruth'),
+          btnDare: document.getElementById('btnDare'),
+          btnSkip: document.getElementById('btnSkip'),
+          btnReset: document.getElementById('btnReset'),
+          turnInfo: document.getElementById('turnInfo')
+        };
+
+        // ---- 便利関数 ----
+        function makeDeck() {
+          const truths = TRUTHS.map(t => ({ type: 'truth', text: t }));
+          const dares = DARES.map(t => ({ type: 'dare', text: t }));
+          return [...truths, ...dares];
         }
-        // 画面表示の切替
-        document.getElementById('setup').style.display = started ? 'none' : 'grid';
-        document.getElementById('game').style.display = started ? 'block' : 'none';
-        render(null);
-      }
+        function shuffle(array) { for (let i=array.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]];} return array; }
+        function counts() {
+          const leftAll = deck.length;
+          const leftTruth = deck.filter(c=>c.type==='truth').length;
+          const leftDare = deck.filter(c=>c.type==='dare').length;
+          return { leftAll, leftTruth, leftDare };
+        }
+        function updateCounts() {
+          const { leftAll, leftTruth, leftDare } = counts();
+          if (el.counts) el.counts.textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
+        }
+        function updateCurrentPlayer() {
+          if (el.currentPlayer) el.currentPlayer.textContent = started ? `現在: ${players[turn]}` : '';
+          if (el.turnInfo) el.turnInfo.textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
+        }
+        function render(card) {
+          if (!el.typeChip || !el.prompt) return;
+          if (!card) {
+            el.typeChip.className='chip';
+            el.typeChip.textContent='カード未選択';
+            el.prompt.textContent='プレイヤーが「真実」か「挑戦」を選んでください';
+          } else {
+            el.typeChip.className = 'chip ' + (card.type==='truth'?'truth':'dare');
+            el.typeChip.textContent = card.type==='truth'?'真実':'挑戦';
+            el.prompt.textContent = card.text;
+          }
+          if (el.history) el.history.innerHTML = history.map(item => `
+            <div class="history-item">
+              <span class="dot ${item.type}"></span>
+              <span>${item.player}</span>
+              <span>${item.text}</span>
+            </div>`).join('');
+          updateCounts();
+          updateCurrentPlayer();
+        }
+        function takeRandom(type) {
+          const pool = deck.filter(c=>c.type===type);
+          if (pool.length===0) return null;
+          const idx = Math.floor(Math.random()*pool.length);
+          const card = pool[idx];
+          const realIndex = deck.indexOf(card);
+          if (realIndex>=0) deck.splice(realIndex,1);
+          return card;
+        }
+        function drawBy(type) {
+          if (!started) return;
+          const card = takeRandom(type);
+          if (!card) { flashPrompt(type==='truth'?'真実が尽きました':'挑戦が尽きました'); return; }
+          history.unshift({ player: players[turn], type: card.type, text: card.text });
+          if (navigator.vibrate) navigator.vibrate(8);
+          render(card);
+          turn = 1 - turn;
+          persist();
+        }
+        function skip() { if (!started) return; if (navigator.vibrate) navigator.vibrate([2,30,2]); turn = 1 - turn; render(null); persist(); }
+        function reset(keepPlayers=true) {
+          deck = shuffle(makeDeck()); history = [];
+          if (!keepPlayers) { players=["プレイヤー1","プレイヤー2"]; turn=0; started=false; el.setup.style.display='grid'; el.game.style.display='none'; }
+          render(null); persist();
+        }
+        function flashPrompt(msg) {
+          if (!el.prompt) return; const old = el.prompt.textContent; el.prompt.textContent = msg; setTimeout(()=> el.prompt.textContent = old, 1200);
+        }
+        function persist() { saveState({ deck, history, players, turn, started }); }
+        function restore() {
+          const saved = loadState();
+          if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
+            ({ deck, history, players, turn, started } = Object.assign({ players, turn, started:false }, saved));
+          } else { deck = shuffle(makeDeck()); started = false; }
+          // 画面切替
+          el.setup.style.display = started ? 'none' : 'grid';
+          el.game.style.display = started ? 'block' : 'none';
+          render(null);
+        }
 
-      // ---- イベント ----
-      document.getElementById('btnTruth').addEventListener('click', () => drawBy('truth'));
-      document.getElementById('btnDare').addEventListener('click', () => drawBy('dare'));
-      document.getElementById('btnSkip').addEventListener('click', skip);
-      document.getElementById('btnReset').addEventListener('click', () => reset(true));
-      document.getElementById('btnStart').addEventListener('click', () => {
-        const n1 = (document.getElementById('p1').value || '').trim() || 'プレイヤー1';
-        const n2 = (document.getElementById('p2').value || '').trim() || 'プレイヤー2';
-        players = [n1, n2]; turn = 0; started = true;
-        document.getElementById('setup').style.display='none';
-        document.getElementById('game').style.display='block';
-        render(null); persist();
-      }); persist();
+        // ---- イベント ----
+        el.btnTruth.addEventListener('click', () => drawBy('truth'));
+        el.btnDare.addEventListener('click', () => drawBy('dare'));
+        el.btnSkip.addEventListener('click', skip);
+        el.btnReset.addEventListener('click', () => reset(true));
+        el.btnStart.addEventListener('click', () => {
+          const n1 = (el.p1.value || '').trim() || 'プレイヤー1';
+          const n2 = (el.p2.value || '').trim() || 'プレイヤー2';
+          players = [n1, n2]; turn = 0; started = true;
+          el.setup.style.display='none'; el.game.style.display='block';
+          render(null); persist();
+        });
+
+        // ---- 起動 ----
+        restore();
       });
-
-      // ---- 起動 ----
-      restore();
     </script>
   </body>
 </html>
