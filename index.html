@@ -3,88 +3,57 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>真実か挑戦か｜ワンスクリーン版</title>
+    <title>真実か挑戦か｜2人対戦</title>
     <meta name="theme-color" content="#111" />
     <style>
       :root {
-        --bg: #0f1115;
-        --panel: #161a22;
-        --text: #e6e8ee;
-        --muted: #98a2b3;
-        --accent: #3b82f6;
-        --truth: #10b981;
-        --dare: #ef4444;
+        --bg: #0f1115; --panel: #161a22; --text: #e6e8ee; --muted: #98a2b3;
+        --accent: #3b82f6; --truth: #10b981; --dare: #ef4444;
       }
       html, body { height: 100%; }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
+      body { margin: 0; background: var(--bg); color: var(--text);
         font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", Arial, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        display: grid;
-        place-items: center;
-      }
-      .app {
-        width: min(680px, 100vw);
-        min-height: 100vh;
-        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased; display: grid; place-items: center; }
+      .app { width: min(680px, 100vw); min-height: 100vh; box-sizing: border-box;
         padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        gap: 12px;
-      }
+        display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; }
       header { display: flex; align-items: center; justify-content: space-between; }
       header .title { font-weight: 700; letter-spacing: 0.02em; }
       header .counts { font-size: 12px; color: var(--muted); }
 
-      .card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        gap: 10px;
-        min-height: 46vh;
-      }
+      .setup { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+      input { background: #0f1320; border: 1px solid rgba(255,255,255,.12); color: var(--text);
+        padding: 12px; border-radius: 10px; font-size: 16px; }
+
+      .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 42vh; }
       .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; border: 1px solid rgba(255,255,255,0.12) }
       .chip.truth { color: var(--truth); border-color: color-mix(in oklab, var(--truth) 60%, transparent); }
       .chip.dare { color: var(--dare); border-color: color-mix(in oklab, var(--dare) 60%, transparent); }
-
       #prompt { font-size: clamp(20px, 4.8vw, 28px); line-height: 1.5; }
 
       .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      button {
-        -webkit-tap-highlight-color: transparent;
-        appearance: none; border: none; cursor: pointer;
-        background: var(--accent); color: white; font-weight: 700;
-        padding: 16px; border-radius: 14px; font-size: 16px;
-        box-shadow: 0 8px 20px rgba(59,130,246,0.32);
-        transition: transform .05s ease, filter .2s ease;
-      }
+      button { -webkit-tap-highlight-color: transparent; appearance: none; border: none; cursor: pointer;
+        background: var(--accent); color: white; font-weight: 700; padding: 16px; border-radius: 14px; font-size: 16px; box-shadow: 0 8px 20px rgba(59,130,246,0.32);
+        transition: transform .05s ease, filter .2s ease; }
       button:active { transform: translateY(1px) scale(0.99); }
       .secondary { background: #252b39; color: var(--text); box-shadow: none; }
+      .truthBtn { background: var(--truth); box-shadow: 0 8px 20px rgba(16,185,129,.28); }
+      .dareBtn { background: var(--dare); box-shadow: 0 8px 20px rgba(239,68,68,.28); }
 
       .toolbar { display: flex; gap: 8px; }
-      .toolbar button { padding: 10px 12px; font-weight: 600; font-size: 14px; }
-
-      .history {
-        display: grid; gap: 6px; max-height: 32vh; overflow: auto;
-        padding-right: 4px;
-      }
-      .history-item { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; }
+      .history { display: grid; gap: 6px; max-height: 32vh; overflow: auto; padding-right: 4px; }
+      .history-item { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; }
       .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
-      .dot.truth { background: var(--truth); }
-      .dot.dare { background: var(--dare); }
+      .dot.truth { background: var(--truth); } .dot.dare { background: var(--dare); }
+      .turn { font-size: 13px; color: var(--muted); }
 
       footer { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
       a { color: var(--text); opacity: .9; }
-
-      @media (max-width: 420px) {
-        .actions { grid-template-columns: 1fr; }
-      }
+      @media (max-width: 420px) { .actions { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -94,33 +63,43 @@
         <div class="counts" id="counts">残り: -</div>
       </header>
 
+      <section class="setup" id="setup">
+        <div class="row">
+          <input id="p1" placeholder="プレイヤー1の名前" inputmode="text" />
+          <input id="p2" placeholder="プレイヤー2の名前" inputmode="text" />
+          <button id="btnStart">開始</button>
+        </div>
+        <div class="turn" id="turnInfo">名前を入力して「開始」</div>
+      </section>
+
       <section class="card" aria-live="polite" aria-atomic="true">
-        <div><span id="typeChip" class="chip">カード未選択</span></div>
-        <div id="prompt">「ひく」を押して開始</div>
+        <div>
+          <span id="typeChip" class="chip">カード未選択</span>
+          <span class="turn" id="currentPlayer"></span>
+        </div>
+        <div id="prompt">プレイヤーが「真実」か「挑戦」を選んでください</div>
         <div class="actions">
-          <button id="btnDraw" aria-label="カードを引く">ひく</button>
+          <button id="btnTruth" class="truthBtn" aria-label="真実を引く">真実をひく</button>
+          <button id="btnDare" class="dareBtn" aria-label="挑戦を引く">挑戦をひく</button>
+        </div>
+        <div class="actions">
           <button id="btnSkip" class="secondary" aria-label="スキップ">スキップ</button>
+          <button id="btnReset" class="secondary" aria-label="リセット">リセット</button>
         </div>
       </section>
 
       <section>
-        <div class="toolbar">
-          <button id="btnTruth">真実のみ</button>
-          <button id="btnDare" class="secondary">挑戦のみ</button>
-          <button id="btnAll" class="secondary">全部</button>
-          <button id="btnReset" class="secondary">リセット</button>
-        </div>
         <div class="history" id="history"></div>
       </section>
 
       <footer>
-        <span>ワンスクリーン・オフラインOK</span>
+        <span>2人対戦・ローカル保存</span>
         <span id="saveStateInfo"></span>
       </footer>
     </main>
 
     <script>
-      // ---- 初期デッキ（必要に応じて編集） ----
+      // ---- デッキ ----
       const TRUTHS = [
         "今週いちばん焦った出来事は？",
         "最近の小さな罪悪感は？",
@@ -143,10 +122,9 @@
       ];
 
       // ---- 永続化 ----
-      const KEY = "tod_state_v1";
+      const KEY = "tod_state_v2"; // v2: 2人対戦対応
       function saveState(state) {
-        try {
-          localStorage.setItem(KEY, JSON.stringify(state));
+        try { localStorage.setItem(KEY, JSON.stringify(state));
           document.getElementById('saveStateInfo').textContent = "保存中";
           setTimeout(()=>document.getElementById('saveStateInfo').textContent = "", 600);
         } catch (_) {}
@@ -155,138 +133,65 @@
         try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
       }
 
-      // ---- 状態管理 ----
-      let filter = 'all'; // 'all' | 'truth' | 'dare'
+      // ---- 状態 ----
       let deck = [];
-      let history = [];
+      let history = []; // {player, type, text}
+      let players = ["プレイヤー1", "プレイヤー2"];
+      let turn = 0; // 0 or 1
+      let started = false;
 
       function makeDeck() {
         const truths = TRUTHS.map(t => ({ type: 'truth', text: t }));
         const dares = DARES.map(t => ({ type: 'dare', text: t }));
         return [...truths, ...dares];
       }
-      function shuffle(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      }
+      function shuffle(array) { for (let i=array.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]];} return array; }
 
-      function filteredDeck() {
-        if (filter === 'truth') return deck.filter(c => c.type === 'truth');
-        if (filter === 'dare') return deck.filter(c => c.type === 'dare');
-        return deck;
-      }
-
-      function draw() {
-        const pool = filteredDeck();
-        if (pool.length === 0) { flashPrompt('カードがありません。リセットしてください'); return; }
-        const idx = Math.floor(Math.random() * pool.length);
-        const card = pool[idx];
-        const realIndex = deck.indexOf(card);
-        if (realIndex >= 0) deck.splice(realIndex, 1);
-        history.unshift(card);
-        if (navigator.vibrate) navigator.vibrate(8);
-        render(card);
-        persist();
-      }
-
-      function skip() {
-        const pool = filteredDeck();
-        if (pool.length === 0) { flashPrompt('スキップできません'); return; }
-        const idx = Math.floor(Math.random() * pool.length);
-        const card = pool[idx];
-        render(card); // 状態は消費しない
-        if (navigator.vibrate) navigator.vibrate([2,30,2]);
-      }
-
-      function reset() {
-        deck = shuffle(makeDeck());
-        history = [];
-        render(null);
-        persist();
-      }
-
-      function setFilter(next) {
-        filter = next;
-        updateCounts();
-        updateFilterButtons();
-      }
-
-      function updateFilterButtons() {
-        const all = document.getElementById('btnAll');
-        const t = document.getElementById('btnTruth');
-        const d = document.getElementById('btnDare');
-        for (const el of [all,t,d]) el.classList.add('secondary');
-        if (filter === 'all') all.classList.remove('secondary');
-        if (filter === 'truth') t.classList.remove('secondary');
-        if (filter === 'dare') d.classList.remove('secondary');
-      }
-
-      function flashPrompt(msg) {
-        const el = document.getElementById('prompt');
-        const old = el.textContent;
-        el.textContent = msg;
-        setTimeout(()=> el.textContent = old, 1200);
-      }
-
-      function updateCounts() {
+      function counts() {
         const leftAll = deck.length;
         const leftTruth = deck.filter(c=>c.type==='truth').length;
         const leftDare = deck.filter(c=>c.type==='dare').length;
-        const scope = filter==='all' ? leftAll : filter==='truth' ? leftTruth : leftDare;
-        document.getElementById('counts').textContent = `残り: ${scope}（T:${leftTruth} / D:${leftDare})`;
+        return { leftAll, leftTruth, leftDare };
+      }
+
+      function updateCounts() {
+        const { leftAll, leftTruth, leftDare } = counts();
+        document.getElementById('counts').textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
+      }
+
+      function updateCurrentPlayer() {
+        const cp = document.getElementById('currentPlayer');
+        cp.textContent = started ? `現在: ${players[turn]}` : '';
+        document.getElementById('turnInfo').textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
       }
 
       function render(card) {
         const chip = document.getElementById('typeChip');
         const prompt = document.getElementById('prompt');
-        if (!card) {
-          chip.className = 'chip';
-          chip.textContent = 'カード未選択';
-          prompt.textContent = '「ひく」を押して開始';
-        } else {
-          chip.className = 'chip ' + (card.type === 'truth' ? 'truth' : 'dare');
-          chip.textContent = card.type === 'truth' ? '真実' : '挑戦';
-          prompt.textContent = card.text;
-        }
+        if (!card) { chip.className='chip'; chip.textContent='カード未選択'; prompt.textContent='プレイヤーが「真実」か「挑戦」を選んでください'; }
+        else { chip.className = 'chip ' + (card.type==='truth'?'truth':'dare'); chip.textContent = card.type==='truth'?'真実':'挑戦'; prompt.textContent = card.text; }
         const list = document.getElementById('history');
         list.innerHTML = history.map(item => `
           <div class="history-item">
             <span class="dot ${item.type}"></span>
+            <span>${item.player}</span>
             <span>${item.text}</span>
-          </div>
-        `).join('');
+          </div>`).join('');
         updateCounts();
+        updateCurrentPlayer();
       }
 
-      function persist() {
-        saveState({ deck, history, filter });
+      function takeRandom(type) {
+        const pool = deck.filter(c=>c.type===type);
+        if (pool.length===0) return null;
+        const idx = Math.floor(Math.random()*pool.length);
+        const card = pool[idx];
+        const realIndex = deck.indexOf(card);
+        if (realIndex>=0) deck.splice(realIndex,1);
+        return card;
       }
 
-      function restore() {
-        const saved = loadState();
-        if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
-          deck = saved.deck;
-          history = saved.history;
-          filter = saved.filter || 'all';
-        } else {
-          reset();
-        }
-        render(null);
-        updateFilterButtons();
-      }
-
-      // ---- 起動 ----
-      document.getElementById('btnDraw').addEventListener('click', draw);
-      document.getElementById('btnSkip').addEventListener('click', skip);
-      document.getElementById('btnReset').addEventListener('click', reset);
-      document.getElementById('btnTruth').addEventListener('click', () => setFilter('truth'));
-      document.getElementById('btnDare').addEventListener('click', () => setFilter('dare'));
-      document.getElementById('btnAll').addEventListener('click', () => setFilter('all'));
-
-      restore();
-    </script>
-  </body>
-</html>
+      function drawBy(type) {
+        if (!started) return;
+        const card = takeRandom(type);
+        if (!card) { flashPrompt(type==='truth
