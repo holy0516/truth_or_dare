@@ -63,7 +63,8 @@
         <div class="counts" id="counts">残り: -</div>
       </header>
 
-      <section class="setup" id="setup">
+      <!-- セットアップ画面（初期表示はこれのみ） -->
+      <section class="setup" id="setup" style="display:grid;">
         <div class="row">
           <input id="p1" placeholder="プレイヤー1の名前" inputmode="text" />
           <input id="p2" placeholder="プレイヤー2の名前" inputmode="text" />
@@ -72,24 +73,26 @@
         <div class="turn" id="turnInfo">名前を入力して「開始」</div>
       </section>
 
-      <section class="card" aria-live="polite" aria-atomic="true">
-        <div>
-          <span id="typeChip" class="chip">カード未選択</span>
-          <span class="turn" id="currentPlayer"></span>
-        </div>
-        <div id="prompt">プレイヤーが「真実」か「挑戦」を選んでください</div>
-        <div class="actions">
-          <button id="btnTruth" class="truthBtn" aria-label="真実を引く">真実をひく</button>
-          <button id="btnDare" class="dareBtn" aria-label="挑戦を引く">挑戦をひく</button>
-        </div>
-        <div class="actions">
-          <button id="btnSkip" class="secondary" aria-label="スキップ">スキップ</button>
-          <button id="btnReset" class="secondary" aria-label="リセット">リセット</button>
-        </div>
-      </section>
-
-      <section>
-        <div class="history" id="history"></div>
+      <!-- ゲーム画面（開始まで非表示） -->
+      <section id="game" style="display:none;">
+        <section class="card" aria-live="polite" aria-atomic="true">
+          <div>
+            <span id="typeChip" class="chip">カード未選択</span>
+            <span class="turn" id="currentPlayer"></span>
+          </div>
+          <div id="prompt">プレイヤーが「真実」か「挑戦」を選んでください</div>
+          <div class="actions">
+            <button id="btnTruth" class="truthBtn" aria-label="真実を引く">真実をひく</button>
+            <button id="btnDare" class="dareBtn" aria-label="挑戦を引く">挑戦をひく</button>
+          </div>
+          <div class="actions">
+            <button id="btnSkip" class="secondary" aria-label="スキップ">スキップ</button>
+            <button id="btnReset" class="secondary" aria-label="リセット">リセット</button>
+          </div>
+        </section>
+        <section>
+          <div class="history" id="history"></div>
+        </section>
       </section>
 
       <footer>
@@ -162,7 +165,8 @@
       function updateCurrentPlayer() {
         const cp = document.getElementById('currentPlayer');
         cp.textContent = started ? `現在: ${players[turn]}` : '';
-        document.getElementById('turnInfo').textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
+        const info = document.getElementById('turnInfo');
+        if (info) info.textContent = started ? `ターン: ${players[turn]}` : '名前を入力して「開始」';
       }
 
       function render(card) {
@@ -194,4 +198,76 @@
       function drawBy(type) {
         if (!started) return;
         const card = takeRandom(type);
-        if (!card) { flashPrompt(type==='truth
+        if (!card) { flashPrompt(type==='truth'?'真実が尽きました':'挑戦が尽きました'); return; }
+        const entry = { player: players[turn], type: card.type, text: card.text };
+        history.unshift(entry);
+        if (navigator.vibrate) navigator.vibrate(8);
+        render(card);
+        // 次のプレイヤーへ
+        turn = 1 - turn;
+        persist();
+      }
+
+      function skip() {
+        if (!started) return;
+        if (navigator.vibrate) navigator.vibrate([2,30,2]);
+        turn = 1 - turn; // スキップは手番をパス
+        render(null);
+        persist();
+      }
+
+      function reset(keepPlayers=true) {
+        deck = shuffle(makeDeck());
+        history = [];
+        if (!keepPlayers) {
+          players=["プレイヤー1","プレイヤー2"]; turn=0; started=false;
+          document.getElementById('setup').style.display='grid';
+          document.getElementById('game').style.display='none';
+        }
+        render(null);
+        persist();
+      }
+        render(null);
+        persist();
+      }
+
+      function flashPrompt(msg) {
+        const el = document.getElementById('prompt');
+        const old = el.textContent; el.textContent = msg; setTimeout(()=> el.textContent = old, 1200);
+      }
+
+      function persist() { saveState({ deck, history, players, turn, started }); }
+      function restore() {
+        const saved = loadState();
+        if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
+          ({ deck, history, players, turn, started } = Object.assign({ players, turn, started:false }, saved));
+        } else {
+          deck = shuffle(makeDeck());
+          started = false;
+        }
+        // 画面表示の切替
+        document.getElementById('setup').style.display = started ? 'none' : 'grid';
+        document.getElementById('game').style.display = started ? 'block' : 'none';
+        render(null);
+      }
+
+      // ---- イベント ----
+      document.getElementById('btnTruth').addEventListener('click', () => drawBy('truth'));
+      document.getElementById('btnDare').addEventListener('click', () => drawBy('dare'));
+      document.getElementById('btnSkip').addEventListener('click', skip);
+      document.getElementById('btnReset').addEventListener('click', () => reset(true));
+      document.getElementById('btnStart').addEventListener('click', () => {
+        const n1 = (document.getElementById('p1').value || '').trim() || 'プレイヤー1';
+        const n2 = (document.getElementById('p2').value || '').trim() || 'プレイヤー2';
+        players = [n1, n2]; turn = 0; started = true;
+        document.getElementById('setup').style.display='none';
+        document.getElementById('game').style.display='block';
+        render(null); persist();
+      }); persist();
+      });
+
+      // ---- 起動 ----
+      restore();
+    </script>
+  </body>
+</html>
