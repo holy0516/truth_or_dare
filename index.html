@@ -181,10 +181,20 @@
           if (el.counts) el.counts.textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
         }
         function updateCurrentPlayer() {
-          if (el.currentPlayer) el.currentPlayer.textContent = started ? `現在: ${players[turn]}` : '';
-          if (el.turnInfo) el.turnInfo.textContent = started ? `ターン: ${players[1-turn]}` : '名前を入力して「開始」';
+          if (!started) {
+            if (el.currentPlayer) el.currentPlayer.textContent = '';
+            if (el.turnInfo) el.turnInfo.textContent = '名前を入力して「開始」';
+            const hint = document.getElementById('nextHint');
+            if (hint) hint.textContent = '';
+            return;
+          }
+          const currentIdx = turn;        // 今の手番
+          const nextIdx = 1 - turn;       // 次の手番
+        
+          if (el.currentPlayer) el.currentPlayer.textContent = `現在: ${players[currentIdx]}`;
+          if (el.turnInfo) el.turnInfo.textContent = `ターン: ${players[currentIdx]}`;
           const hint = document.getElementById('nextHint');
-          if (hint) hint.textContent = started ? `次は ${players[turn]} の番です。「真実」か「挑戦」を選んでください` : '';
+          if (hint) hint.textContent = `次は ${players[nextIdx]} の番です。「真実」か「挑戦」を選んでください`;
         }
         function render(card) {
           if (!el.typeChip || !el.prompt) return;
