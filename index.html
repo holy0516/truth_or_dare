@@ -61,10 +61,12 @@
     <main class="app">
       <header>
         <div class="title">真実か挑戦か</div>
-        <div class="counts" id="counts">残り: -</div>
+        <div class="toolbar">
+          <button id="btnSecret" class="secondary" style="padding:8px 12px;font-size:13px;">裏モードOFF</button>
+          <div class="counts" id="counts">残り: -</div>
+        </div>
       </header>
 
-      <!-- セットアップ画面（初期表示はこれのみ） -->
       <section class="setup" id="setup" style="display:grid;">
         <div class="row">
           <input id="p1" placeholder="プレイヤー1の名前" inputmode="text" />
@@ -74,7 +76,6 @@
         <div class="turn" id="turnInfo">名前を入力して「開始」</div>
       </section>
 
-      <!-- ゲーム画面（開始まで非表示） -->
       <section id="game" style="display:none;">
         <section class="card" aria-live="polite" aria-atomic="true">
           <div>
@@ -84,12 +85,12 @@
           <div id="prompt">プレイヤーが「真実」か「挑戦」を選んでください</div>
           <div id="nextHint" class="hint"></div>
           <div class="actions">
-            <button id="btnTruth" class="truthBtn" aria-label="真実を引く">真実をひく</button>
-            <button id="btnDare" class="dareBtn" aria-label="挑戦を引く">挑戦をひく</button>
+            <button id="btnTruth" class="truthBtn">真実をひく</button>
+            <button id="btnDare" class="dareBtn">挑戦をひく</button>
           </div>
           <div class="actions">
-            <button id="btnSkip" class="secondary" aria-label="スキップ">スキップ</button>
-            <button id="btnReset" class="secondary" aria-label="リセット">リセット</button>
+            <button id="btnSkip" class="secondary">スキップ</button>
+            <button id="btnReset" class="secondary">リセット</button>
           </div>
         </section>
         <section>
@@ -104,31 +105,39 @@
     </main>
 
     <script>
-      // DOMContentLoaded 後に初期化して、要素未取得による不具合を防ぐ
       window.addEventListener('DOMContentLoaded', () => {
-        // ---- デッキ ----
+        // ---- 通常デッキ ----
         const TRUTHS = [
           "恋人に隠していることは？",
-          "浮気をしたことはある？",
           "相手の外見で一番魅力的だと思う部分は？",
           "最後に泣いたのはいつ？",
-          "あなたの一番の宝物は？",
-          "体の部位で一番のコンプレックスは？",
-          "相手と一緒にしたいことは？",
-          "来年の誕生日にしたいことは？"
+          "来年の誕生日にしたいことは？",
+          "子供のころの夢は？",
+          "今一番欲しいものは？"
         ];
         const DARES = [
-          "次の自分の順番まで相手の手を握る",
           "相手の耳元で秘密をささやく",
-          "相手の手の甲に指でハートを描く",
           "5分間敬語禁止（相手の名前を呼び捨てにする）",
-          "30秒間くすぐられる",
-          "相手の指示に従ってお酒を飲む",
-          "5秒間キス顔をする"
+          "5秒間キス顔をする",
+          "相手の手の甲に指でハートを描く",
+          "相手に褒め言葉を3つ言う"
+        ];
+
+        // ---- 裏モードデッキ ----
+        const SECRET_TRUTHS = [
+          "体の部位で一番のコンプレックスは？",
+          "相手と一緒にしたいことは？",
+          "浮気をしたことはある？",
+          "経験人数は？"
+        ];
+        const SECRET_DARES = [
+          "次の自分の順番まで相手の手を握る",
+          "10秒間くすぐられる",
+          "相手の指示に従ってお酒を飲む"
         ];
 
         // ---- 永続化 ----
-        const KEY = "tod_state_v3"; // v3: DOMContentLoaded対応
+        const KEY = "tod_state_v5";
         function saveState(state) {
           try { localStorage.setItem(KEY, JSON.stringify(state));
             const info = document.getElementById('saveStateInfo');
@@ -139,10 +148,11 @@
 
         // ---- 状態 ----
         let deck = [];
-        let history = []; // {player, type, text}
+        let history = [];
         let players = ["プレイヤー1", "プレイヤー2"];
-        let turn = 0; // 0 or 1
+        let turn = 0;
         let started = false;
+        let secretMode = false;
 
         // ---- 要素 ----
         const el = {
@@ -160,13 +170,14 @@
           btnDare: document.getElementById('btnDare'),
           btnSkip: document.getElementById('btnSkip'),
           btnReset: document.getElementById('btnReset'),
-          turnInfo: document.getElementById('turnInfo')
+          turnInfo: document.getElementById('turnInfo'),
+          btnSecret: document.getElementById('btnSecret')
         };
 
-        // ---- 便利関数 ----
+        // ---- 関数 ----
         function makeDeck() {
-          const truths = TRUTHS.map(t => ({ type: 'truth', text: t }));
-          const dares = DARES.map(t => ({ type: 'dare', text: t }));
+          const truths = (secretMode ? SECRET_TRUTHS : TRUTHS).map(t => ({ type: 'truth', text: t }));
+          const dares  = (secretMode ? SECRET_DARES  : DARES ).map(t => ({ type: 'dare', text: t }));
           return [...truths, ...dares];
         }
         function shuffle(array) { for (let i=array.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [array[i],array[j]]=[array[j],array[i]];} return array; }
@@ -178,26 +189,22 @@
         }
         function updateCounts() {
           const { leftAll, leftTruth, leftDare } = counts();
-          if (el.counts) el.counts.textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
+          el.counts.textContent = `残り: ${leftAll}（T:${leftTruth} / D:${leftDare})`;
         }
         function updateCurrentPlayer() {
           if (!started) {
-            if (el.currentPlayer) el.currentPlayer.textContent = '';
-            if (el.turnInfo) el.turnInfo.textContent = '名前を入力して「開始」';
-            const hint = document.getElementById('nextHint');
-            if (hint) hint.textContent = '';
+            el.currentPlayer.textContent = '';
+            el.turnInfo.textContent = '名前を入力して「開始」';
+            document.getElementById('nextHint').textContent = '';
             return;
           }
-          const currentIdx = turn;        // 今の手番
-          const nextIdx = 1 - turn;       // 次の手番
-        
-          if (el.currentPlayer) el.currentPlayer.textContent = `現在: ${players[currentIdx]}`;
-          if (el.turnInfo) el.turnInfo.textContent = `ターン: ${players[currentIdx]}`;
-          const hint = document.getElementById('nextHint');
-          if (hint) hint.textContent = `次は ${players[nextIdx]} の番です。「真実」か「挑戦」を選んでください`;
+          const currentIdx = turn;
+          const nextIdx = 1 - turn;
+          el.currentPlayer.textContent = `現在: ${players[currentIdx]}`;
+          el.turnInfo.textContent = `ターン: ${players[currentIdx]}`;
+          document.getElementById('nextHint').textContent = `次は ${players[nextIdx]} の番です。「真実」か「挑戦」を選んでください`;
         }
         function render(card) {
-          if (!el.typeChip || !el.prompt) return;
           if (!card) {
             el.typeChip.className='chip';
             el.typeChip.textContent='カード未選択';
@@ -207,7 +214,7 @@
             el.typeChip.textContent = card.type==='truth'?'真実':'挑戦';
             el.prompt.textContent = card.text;
           }
-          if (el.history) el.history.innerHTML = history.map(item => `
+          el.history.innerHTML = history.map(item => `
             <div class="history-item">
               <span class="dot ${item.type}"></span>
               <span>${item.player}</span>
@@ -221,8 +228,7 @@
           if (pool.length===0) return null;
           const idx = Math.floor(Math.random()*pool.length);
           const card = pool[idx];
-          const realIndex = deck.indexOf(card);
-          if (realIndex>=0) deck.splice(realIndex,1);
+          deck.splice(deck.indexOf(card),1);
           return card;
         }
         function drawBy(type) {
@@ -231,7 +237,6 @@
           if (!card) { flashPrompt(type==='truth'?'真実が尽きました':'挑戦が尽きました'); return; }
           history.unshift({ player: players[turn], type: card.type, text: card.text });
           if (navigator.vibrate) navigator.vibrate(8);
-          // 先に手番を交代してから表示を更新 → 次のプレイヤーに促す文言が正しくなる
           turn = 1 - turn;
           render(card);
           persist();
@@ -243,17 +248,17 @@
           render(null); persist();
         }
         function flashPrompt(msg) {
-          if (!el.prompt) return; const old = el.prompt.textContent; el.prompt.textContent = msg; setTimeout(()=> el.prompt.textContent = old, 1200);
+          const old = el.prompt.textContent; el.prompt.textContent = msg; setTimeout(()=> el.prompt.textContent = old, 1200);
         }
-        function persist() { saveState({ deck, history, players, turn, started }); }
+        function persist() { saveState({ deck, history, players, turn, started, secretMode }); }
         function restore() {
           const saved = loadState();
           if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
-            ({ deck, history, players, turn, started } = Object.assign({ players, turn, started:false }, saved));
-          } else { deck = shuffle(makeDeck()); started = false; }
-          // 画面切替
+            ({ deck, history, players, turn, started, secretMode = false } = Object.assign({ players, turn, started:false }, saved));
+          } else { deck = shuffle(makeDeck()); started = false; secretMode = false; }
           el.setup.style.display = started ? 'none' : 'grid';
           el.game.style.display = started ? 'block' : 'none';
+          el.btnSecret.textContent = secretMode ? "裏モードON" : "裏モードOFF";
           render(null);
         }
 
@@ -268,6 +273,14 @@
           players = [n1, n2]; turn = 0; started = true;
           el.setup.style.display='none'; el.game.style.display='block';
           render(null); persist();
+        });
+
+        // ---- 裏モード切替 ----
+        el.btnSecret.addEventListener('click', () => {
+          secretMode = !secretMode;
+          el.btnSecret.textContent = secretMode ? "裏モードON" : "裏モードOFF";
+          reset(true);
+          persist();
         });
 
         // ---- 起動 ----
