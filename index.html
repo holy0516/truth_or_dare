@@ -18,8 +18,16 @@
         padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
         display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; }
       header { display: flex; align-items: center; justify-content: space-between; }
-      header .title { font-weight: 700; letter-spacing: 0.02em; }
-      header .counts { font-size: 12px; color: var(--muted); }
+      header .title { font-weight: 700; letter-spacing: 0.02em; font-size: 20px; }
+      header .toolbar { display: flex; align-items: center; gap: 12px; }
+      header .counts {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        padding: 4px 10px;
+      }
 
       .setup { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
         border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
@@ -45,7 +53,6 @@
       .truthBtn { background: var(--truth); box-shadow: 0 8px 20px rgba(16,185,129,.28); }
       .dareBtn { background: var(--dare); box-shadow: 0 8px 20px rgba(239,68,68,.28); }
 
-      .toolbar { display: flex; gap: 8px; }
       .history { display: grid; gap: 6px; max-height: 32vh; overflow: auto; padding-right: 4px; }
       .history-item { font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto auto 1fr; gap: 8px; align-items: baseline; }
       .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
@@ -62,8 +69,8 @@
       <header>
         <div class="title">真実か挑戦か</div>
         <div class="toolbar">
-          <button id="btnSecret" class="secondary" style="padding:8px 12px;font-size:13px;">裏モードOFF</button>
           <div class="counts" id="counts">残り: -</div>
+          <button id="btnSecret" class="secondary" style="padding:8px 12px;font-size:13px;">裏モードOFF</button>
         </div>
       </header>
 
@@ -106,6 +113,9 @@
 
     <script>
       window.addEventListener('DOMContentLoaded', () => {
+        // --- 起動時にキャッシュをクリアして常に新規開始 ---
+        localStorage.removeItem("tod_state_v7");
+
         // ---- 通常デッキ ----
         const TRUTHS = [
           "恋人に隠していることは？",
@@ -113,14 +123,19 @@
           "最後に泣いたのはいつ？",
           "来年の誕生日にしたいことは？",
           "子供のころの夢は？",
-          "今一番欲しいものは？"
+          "今一番欲しいものは？",
+          "あなたの理想のデートは？",
+          "初恋はいつ？どんな人？"
         ];
         const DARES = [
           "相手の耳元で秘密をささやく",
           "5分間敬語禁止（相手の名前を呼び捨てにする）",
           "5秒間キス顔をする",
           "相手の手の甲に指でハートを描く",
-          "相手に褒め言葉を3つ言う"
+          "相手に褒め言葉を3つ言う",
+          "相手の好きなところを1つ言う",
+          "10秒間相手を見つめ続ける",
+          "恥ずかしいポーズを5秒間する"
         ];
 
         // ---- 裏モードデッキ ----
@@ -128,16 +143,20 @@
           "体の部位で一番のコンプレックスは？",
           "相手と一緒にしたいことは？",
           "浮気をしたことはある？",
-          "経験人数は？"
+          "経験人数は？",
+          "恋人に言えない秘密の癖は？",
+          "一番忘れられない恋は？"
         ];
         const SECRET_DARES = [
           "次の自分の順番まで相手の手を握る",
           "10秒間くすぐられる",
-          "相手の指示に従ってお酒を飲む"
+          "相手の指示に従ってお酒を飲む",
+          "相手に好きなところを囁く",
+          "相手の肩に10秒間頭を乗せる",
+          "目を閉じて相手の匂いを感じる"
         ];
 
-        // ---- 永続化 ----
-        const KEY = "tod_state_v5";
+        const KEY = "tod_state_v7";
         function saveState(state) {
           try { localStorage.setItem(KEY, JSON.stringify(state));
             const info = document.getElementById('saveStateInfo');
@@ -146,7 +165,6 @@
         }
         function loadState() { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } }
 
-        // ---- 状態 ----
         let deck = [];
         let history = [];
         let players = ["プレイヤー1", "プレイヤー2"];
@@ -154,7 +172,6 @@
         let started = false;
         let secretMode = false;
 
-        // ---- 要素 ----
         const el = {
           setup: document.getElementById('setup'),
           game: document.getElementById('game'),
@@ -174,7 +191,6 @@
           btnSecret: document.getElementById('btnSecret')
         };
 
-        // ---- 関数 ----
         function makeDeck() {
           const truths = (secretMode ? SECRET_TRUTHS : TRUTHS).map(t => ({ type: 'truth', text: t }));
           const dares  = (secretMode ? SECRET_DARES  : DARES ).map(t => ({ type: 'dare', text: t }));
@@ -239,30 +255,17 @@
           if (navigator.vibrate) navigator.vibrate(8);
           turn = 1 - turn;
           render(card);
-          persist();
         }
-        function skip() { if (!started) return; if (navigator.vibrate) navigator.vibrate([2,30,2]); turn = 1 - turn; render(null); persist(); }
+        function skip() { if (!started) return; if (navigator.vibrate) navigator.vibrate([2,30,2]); turn = 1 - turn; render(null); }
         function reset(keepPlayers=true) {
           deck = shuffle(makeDeck()); history = [];
           if (!keepPlayers) { players=["プレイヤー1","プレイヤー2"]; turn=0; started=false; el.setup.style.display='grid'; el.game.style.display='none'; }
-          render(null); persist();
+          render(null);
         }
         function flashPrompt(msg) {
           const old = el.prompt.textContent; el.prompt.textContent = msg; setTimeout(()=> el.prompt.textContent = old, 1200);
         }
-        function persist() { saveState({ deck, history, players, turn, started, secretMode }); }
-        function restore() {
-          const saved = loadState();
-          if (saved && Array.isArray(saved.deck) && Array.isArray(saved.history)) {
-            ({ deck, history, players, turn, started, secretMode = false } = Object.assign({ players, turn, started:false }, saved));
-          } else { deck = shuffle(makeDeck()); started = false; secretMode = false; }
-          el.setup.style.display = started ? 'none' : 'grid';
-          el.game.style.display = started ? 'block' : 'none';
-          el.btnSecret.textContent = secretMode ? "裏モードON" : "裏モードOFF";
-          render(null);
-        }
 
-        // ---- イベント ----
         el.btnTruth.addEventListener('click', () => drawBy('truth'));
         el.btnDare.addEventListener('click', () => drawBy('dare'));
         el.btnSkip.addEventListener('click', skip);
@@ -272,19 +275,19 @@
           const n2 = (el.p2.value || '').trim() || 'プレイヤー2';
           players = [n1, n2]; turn = 0; started = true;
           el.setup.style.display='none'; el.game.style.display='block';
-          render(null); persist();
+          deck = shuffle(makeDeck());
+          render(null);
         });
 
-        // ---- 裏モード切替 ----
         el.btnSecret.addEventListener('click', () => {
           secretMode = !secretMode;
           el.btnSecret.textContent = secretMode ? "裏モードON" : "裏モードOFF";
           reset(true);
-          persist();
         });
 
-        // ---- 起動 ----
-        restore();
+        // 初期化時に新しいデッキをセット
+        deck = shuffle(makeDeck());
+        render(null);
       });
     </script>
   </body>
